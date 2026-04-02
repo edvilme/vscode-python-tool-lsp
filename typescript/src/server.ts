@@ -17,8 +17,51 @@ import { getExtensionSettings, getGlobalSettings, ISettings } from './settings';
 import { getDocumentSelector, getLSClientTraceLevel } from './utilities';
 import { updateStatus } from './status';
 import { ToolConfig } from './types';
+import { getConfiguration } from './vscodeapi';
 
 export type IInitOptions = { settings: ISettings[]; globalSettings: ISettings };
+
+function parseEnvFile(content: string): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (const line of content.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) {
+            continue;
+        }
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex === -1) {
+            continue;
+        }
+        const key = trimmed.substring(0, eqIndex).trim().replace(/^export\s+/, '');
+        let value = trimmed.substring(eqIndex + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+        }
+        if (key) {
+            env[key] = value;
+        }
+    }
+    return env;
+}
+
+async function loadEnvVarsFromFile(workspace: Uri): Promise<Record<string, string>> {
+    const pythonConfig = getConfiguration('python', workspace);
+    let envFileSetting = pythonConfig.get<string>('envFile', '${workspaceFolder}/.env');
+    envFileSetting = envFileSetting.replace('${workspaceFolder}', workspace.fsPath);
+
+    if (!envFileSetting || !(await fsapi.pathExists(envFileSetting))) {
+        return {};
+    }
+
+    try {
+        const content = await fsapi.readFile(envFileSetting, 'utf-8');
+        traceInfo(`Loaded environment variables from ${envFileSetting}`);
+        return parseEnvFile(content);
+    } catch (ex) {
+        traceError(`Failed to read env file ${envFileSetting}: ${ex}`);
+        return {};
+    }
+}
 
 async function createServer(
     settings: ISettings,
@@ -29,11 +72,13 @@ async function createServer(
     toolConfig?: ToolConfig,
 ): Promise<LanguageClient> {
     const command = settings.interpreter[0];
-    const workspaceUri = Uri.parse(settings.workspace);
+    const workspaceUri = Uri.file(settings.workspace);
     const cwd = settings.cwd === '${fileDirname}' ? workspaceUri.fsPath : settings.cwd;
 
     // Set debugger path needed for debugging python code.
     const newEnv = { ...process.env };
+    const envFileVars = await loadEnvVarsFromFile(workspaceUri);
+    Object.assign(newEnv, envFileVars);
     const debuggerPath = await getDebuggerPath();
 
     const serverScript = toolConfig?.serverScripts?.main ?? SERVER_SCRIPT_PATH;

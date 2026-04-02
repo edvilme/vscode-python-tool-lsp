@@ -13,7 +13,7 @@ import runpy
 import subprocess
 import sys
 import threading
-from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 # Save the working directory used when loading this module
 SERVER_CWD = os.getcwd()
@@ -28,13 +28,18 @@ def as_list(content: Union[Any, List[Any], Tuple[Any]]) -> List[Any]:
 
 
 def is_same_path(file_path1: str, file_path2: str) -> bool:
-    """Returns true if two paths are the same."""
-    return pathlib.Path(file_path1) == pathlib.Path(file_path2)
+    """Returns true if two paths are the same, resolving symlinks."""
+    try:
+        return pathlib.Path(file_path1).resolve() == pathlib.Path(file_path2).resolve()
+    except OSError:
+        return pathlib.Path(file_path1) == pathlib.Path(file_path2)
 
 
-def normalize_path(file_path: str) -> str:
+def normalize_path(file_path: str, resolve_symlinks: bool = True) -> str:
     """Returns normalized path."""
-    return str(pathlib.Path(file_path).resolve())
+    if resolve_symlinks:
+        return str(pathlib.Path(file_path).resolve())
+    return str(pathlib.Path(file_path).absolute())
 
 
 def is_current_interpreter(executable: str) -> bool:
@@ -156,8 +161,12 @@ def run_path(
     use_stdin: bool,
     cwd: str,
     source: Optional[str] = None,
+    env: Optional[Dict[str, str]] = None,
 ) -> RunResult:
     """Runs as an executable."""
+    run_env = None
+    if env:
+        run_env = {**os.environ, **env}
     if use_stdin:
         with subprocess.Popen(
             argv,
@@ -166,6 +175,7 @@ def run_path(
             stderr=subprocess.PIPE,
             stdin=subprocess.PIPE,
             cwd=cwd,
+            env=run_env,
         ) as process:
             return RunResult(*process.communicate(input=source))
     else:
@@ -176,6 +186,7 @@ def run_path(
             stderr=subprocess.PIPE,
             check=False,
             cwd=cwd,
+            env=run_env,
         )
         return RunResult(result.stdout, result.stderr)
 

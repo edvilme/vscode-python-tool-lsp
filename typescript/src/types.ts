@@ -94,6 +94,9 @@ export interface ToolConfig {
 
         /** Called during createServer to provide custom state change handling */
         onServerStateChange?: (state: 'stopped' | 'starting' | 'running') => void;
+
+        /** Custom CWD resolution for the server process */
+        getServerCwd?: (settings: ISettings, workspaceUri: Uri) => string | undefined;
     };
 
     // --- Advanced Overrides ---

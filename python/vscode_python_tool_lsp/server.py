@@ -64,6 +64,12 @@ class ToolServerConfig:
     # --- Settings ---
     extra_global_defaults: Dict[str, Any] = field(default_factory=dict)
 
+    # Severity mapping: tool codes → LSP DiagnosticSeverity values
+    severity_map: Optional[Dict[str, int]] = None
+
+    # Extra environment variables to set when running the tool
+    extra_env_vars: Dict[str, str] = field(default_factory=dict)
+
 
 class LSPToolServer:
     """Parameterized LSP server for Python tools (linters & formatters)."""
@@ -254,6 +260,7 @@ class LSPToolServer:
                 self.config.use_stdin,
                 cwd,
                 document.source if self.config.use_stdin else None,
+                env=self.config.extra_env_vars or None,
             )
 
         interpreter = settings.get("interpreter", [sys.executable])
@@ -275,6 +282,7 @@ class LSPToolServer:
                 use_stdin=self.config.use_stdin,
                 cwd=cwd,
                 source=document.source if self.config.use_stdin else None,
+                env=self.config.extra_env_vars or None,
             )
             if result.exception:
                 self.log_to_output(result.exception, lsp.MessageType.Error)

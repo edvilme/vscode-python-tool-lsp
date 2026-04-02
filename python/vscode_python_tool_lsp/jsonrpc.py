@@ -144,9 +144,11 @@ class ProcessManager:
         env: Optional[Dict[str, str]] = None,
     ) -> None:
         """Starts a process and establishes JSON-RPC communication over stdio."""
-        new_env = os.environ.copy()
-        if env:
+        if env is not None:
+            new_env = os.environ.copy()
             new_env.update(env)
+        else:
+            new_env = None
         # pylint: disable=consider-using-with
         proc = subprocess.Popen(
             args,
@@ -229,7 +231,7 @@ def run_over_json_rpc(
     """Uses JSON-RPC to execute a command."""
     rpc: Union[JsonRpc, None] = get_or_start_json_rpc(workspace, interpreter, cwd, env)
     if not rpc:
-        raise Exception("Failed to run over JSON-RPC.")
+        raise ConnectionError("Failed to run over JSON-RPC.")
 
     msg_id = str(uuid.uuid4())
     msg = {

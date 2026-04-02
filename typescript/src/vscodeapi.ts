@@ -10,6 +10,7 @@ import {
     languages,
     LanguageStatusItem,
     LogOutputChannel,
+    StatusBarAlignment,
     Uri,
     window,
     workspace,
@@ -59,4 +60,18 @@ export function registerDocumentFormattingEditProvider(
 
 export function createLanguageStatusItem(id: string, selector: DocumentSelector): LanguageStatusItem {
     return languages.createLanguageStatusItem(id, selector);
+}
+
+export function getActiveTextEditor() {
+    return window.activeTextEditor;
+}
+
+export const onDidChangeActiveTextEditor = window.onDidChangeActiveTextEditor;
+
+export function createStatusBarItem(
+    id: string,
+    alignment?: StatusBarAlignment,
+    priority?: number,
+) {
+    return window.createStatusBarItem(id, alignment, priority);
 }

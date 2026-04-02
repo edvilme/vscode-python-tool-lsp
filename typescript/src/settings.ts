@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+import * as os from 'os';
+import * as path from 'path';
 import { ConfigurationChangeEvent, WorkspaceConfiguration, WorkspaceFolder } from 'vscode';
 import { getInterpreterDetails } from './python';
 import { getConfiguration, getWorkspaceFolders } from './vscodeapi';
@@ -81,6 +83,10 @@ export function resolveVariables(
     return modifiedValue.map((s) => {
         for (const [subKey, subValue] of substitutions) {
             s = s.replace(subKey, subValue);
+        }
+        // Tilde expansion
+        if (s.startsWith('~/') || s.startsWith('~\\')) {
+            s = path.join(os.homedir(), s.slice(2));
         }
         return s;
     });
@@ -179,6 +185,21 @@ export async function getGlobalSettings(
     };
     traceInfo(`Global settings (client side): ${JSON.stringify(setting, null, 4)}`);
     return setting;
+}
+
+export function getTrackedSettings(namespace: string, additionalKeys?: string[]): string[] {
+    const baseKeys = [
+        `${namespace}.args`,
+        `${namespace}.path`,
+        `${namespace}.interpreter`,
+        `${namespace}.importStrategy`,
+        `${namespace}.showNotifications`,
+    ];
+    if (additionalKeys) {
+        baseKeys.push(...additionalKeys.map((k) => `${namespace}.${k}`));
+    }
+    baseKeys.push(`${namespace}.cwd`);
+    return baseKeys;
 }
 
 export function checkIfConfigurationChanged(

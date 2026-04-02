@@ -22,6 +22,7 @@ export {
     getWorkspaceSettings,
     getGlobalSettings,
     checkIfConfigurationChanged,
+    getTrackedSettings,
     resolveVariables,
 } from './settings';
 
@@ -80,4 +81,7 @@ export {
     getWorkspaceFolder,
     registerDocumentFormattingEditProvider,
     createLanguageStatusItem,
+    getActiveTextEditor,
+    onDidChangeActiveTextEditor,
+    createStatusBarItem,
 } from './vscodeapi';
