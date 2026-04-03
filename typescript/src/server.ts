@@ -72,7 +72,7 @@ async function createServer(
     toolConfig?: ToolConfig,
 ): Promise<LanguageClient> {
     const command = settings.interpreter[0];
-    const workspaceUri = Uri.file(settings.workspace);
+    const workspaceUri = Uri.parse(settings.workspace);
     const cwd = settings.cwd === '${fileDirname}' ? workspaceUri.fsPath : settings.cwd;
 
     // Set debugger path needed for debugging python code.
